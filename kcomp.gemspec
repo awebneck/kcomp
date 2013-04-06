@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     "Rakefile",
     "VERSION",
     "bin/kcomp",
+    "kcomp.gemspec",
     "lib/errors.rb",
     "lib/kcomp.rb",
     "spec/kcomp_spec.rb",
