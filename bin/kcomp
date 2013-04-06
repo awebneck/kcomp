@@ -1,4 +1,24 @@
 #!/usr/bin/env ruby
 require File.dirname(__FILE__) + "/../lib/kcomp"
+require 'optparse'
 
-KComp.compile! ARGV[0] || ".", ARGV[1] || "."
+options = {:src => '.', :dest => '.'}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: kcomp [options]"
+  opts.on("-s", "--source SOURCE", "The source parent directory for all .kit files") do |src|
+    options[:src] = src
+  end
+  opts.on("-d", "--destination DESTINATION", "The output directory") do |dest|
+    options[:dest] = dest
+  end
+  opts.on("-f", "--flatten", "Flatten all output in destination directory") do
+    options[:flatten] = true
+  end
+  opts.on_tail("-h", "--help", "Print this help message") do
+    puts opts
+    exit
+  end
+end.parse!
+
+KComp.compile! options[:src], options[:dest], options

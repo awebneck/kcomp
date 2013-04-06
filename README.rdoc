@@ -2,9 +2,13 @@
 
 This is a simple command-line compiler for CodeKit .kit files for those of us who don't have it, aren't on Macs, or simply prefer the command line  Usage is pretty simple:
 
-  kcomp SRC-DIR DEST-DIR
+  kcomp [-s SOURCEDIR] [-d DESTDIR] [-f]
 
 if the arguemnts are omitted, they will both be assumed to be the CWD. Documentation on the .kit file format can be found at http://incident57.com/codekit/kit.php.
+
+== WARNING!
+
+This thing is hacky as hell. I started with the spec, and basically iterated until diff showed no difference between those files compiled by codekit and those compiled by this tool. I reserve every possible right to have screwed up fantastically.
 
 == Contributing to kcomp
  

@@ -1,24 +1,30 @@
 require 'rgl/adjacency'
 require 'rgl/topsort'
 require 'fileutils'
+require 'pry'
 require File.dirname(__FILE__) + "/errors"
 
 class KComp
-  def initialize(src, dest)
+  def initialize(src, dest, opts={})
+    @options = opts
     @depdg = RGL::DirectedAdjacencyGraph.new
     @texts = {}
-    @ctexts = {}
-    @vars = {}
+    @compiled = []
     @src = src = src =~ /\/$/ ? src : src + "/"
+    if @src !~ /^[.\/]/
+      @src = "./" + @src
+    end
     @dest = dest = dest =~ /\/$/ ? dest : dest + "/"
-    build_vertices src
+    if @dest !~ /^[.\/]/
+      @dest = "./" + @dest
+    end
+    build_vertices @src
     @vertices = @depdg.to_a
-    build_edges src
+    build_edges @src
     check_for_cycles
     @tsort = @depdg.topsort_iterator
     @reversedg = @depdg.reverse
     @rtsort = @reversedg.topsort_iterator
-    define_variables
   end
 
   def dependency_digraph
@@ -39,50 +45,59 @@ class KComp
   end
 
   private
-    def define_variables
-      @tsort.each do |v|
-        rf = f = @texts[v]
-        vars = {}
-        f.scan(/(<!-- ?[$@]([A-Za-z_][A-Za-z0-9_\-]*) ?[ :=] *(.+) *-->)/).each do |var|
-          vars[var[1]] = var.last.strip
-          rf.gsub! var.first, ""
-        end
-        define_variables_for_vertex v, vars
-      end
-    end
 
-    def define_variables_for_vertex(v, vars)
-      @vars[v] ||= {}
-      @vars[v].merge! vars
-      @depdg.adjacent_vertices(v).each do |dep|
-        define_variables_for_vertex dep, vars
-      end
-    end
-
-    def compile_files(dest)
-      @rtsort.each do |v|
-        rf = f = @texts[v]
-        f.scan(/(<!--!!! (.+) !!!-->)/).each do |import|
-          rf.gsub! import.first, @ctexts[import.last]
-        end
-        f.scan(/(<!-- ?[$@]([A-Za-z_][A-Za-z0-9_\-]*) ?-->)/).each do |import|
-          if @vars[v][import.last].nil?
-            raise UndefinedVariableError, "Variable #{import.last} not defined."
+    def compile_inclusion(vertex, dest, ovars={}, inclusion=false)
+      vars = ovars.dup
+      f = @texts[vertex].dup
+      rf = f.dup
+      if (vertex !~ /_[^\/]+\.kit$/ || inclusion)
+        f.scan(/(<!-- *[$@]([A-Za-z0-9_][A-Za-z0-9_]*) *-->)|(<!-- ?[$@]([A-Za-z0-9_][A-Za-z0-9_]*) ?[ :=] *(.+) *-->)|(<!--!!! (.+) !!!-->)/).each do |import|
+          begin
+            if (import[0].nil? && import[2].nil?)
+              rf.gsub! import[5], compile_inclusion(import[6], dest, vars, true).rstrip
+            elsif (import[5].nil? && import[2].nil?)
+              rf.gsub! import[0], vars[import[1]]
+            else
+              vars[import[3]] = import[4].strip
+              rf.gsub!(import[2] + "\n", "")
+              rf.gsub!(import[2], "")
+            end
           end
-          rf.gsub! import.first, @vars[v][import.last]
         end
-        @ctexts[v] = rf.gsub(/\n+/, "\n")
-        if (v !~ /_[^\/]+\.kit$/)
-          filename = dest + v.gsub(@src, "").gsub(/\.kit$/, ".html")
-          dirname = filename.gsub(/\/[^\/]+$/, "")
+        if (vertex !~ /_[^\/]+\.kit$/)
+          unless @options[:flatten]
+            filename = dest + vertex.gsub(@src, "").gsub(/\.kit$/, detect_format(rf))
+            dirname = filename.gsub(/\/[^\/]+$/, "")
+          else
+            filename = dest + vertex.gsub(/([^\/]+\/)+/, "").gsub(/\.kit$/, detect_format(rf))
+            dirname = filename.gsub(/\/[^\/]+$/, "")
+          end
           puts "Compiling #{filename}"
           unless Dir.exists?(dirname)
             FileUtils.mkdir_p dirname
           end
           File.open(filename, 'w+') do |file|
-            file.write @ctexts[v]
+            file.write rf
           end
         end
+      end
+      rf
+    end
+
+    def compile_files(dest)
+      @tsort.each do |v|
+        compile_inclusion(v, dest)
+      end
+    end
+
+    def detect_format(text)
+      case text
+      when /<\?php/
+        ".php"
+      when /<%=?/
+        ".erb"
+      else
+        ".html"
       end
     end
 
@@ -108,11 +123,11 @@ class KComp
 
     def build_edges(src)
       @depdg.vertices.each do |v|
-        add_edges(src, v)
+        add_edges(src, v, v.gsub(src, "").gsub(/\/[^\/]+$/, "") + "/")
       end
     end
 
-    def add_edges(src, vertex)
+    def add_edges(src, vertex, subdir="")
       rf = f = File.read(vertex)
       f.scan(/(<!-- ?@(?:import|include) ['"]?((?:[A-Za-z0-9_\/\-.]+(?:, *)?)+)['"]? ?-->)/).each do |import|
         repl = []
@@ -121,14 +136,14 @@ class KComp
           if incl !~ /\.\w+$/
             incl = "#{incl}.kit"
           end
-          if @vertices.include?(src + incl)
-            match = src + incl
-          elsif @vertices.include?(src + "_" + incl)
-            match = src + "_" + incl
+          if @vertices.include?(src + subdir + incl)
+            match = src + subdir + incl
+          elsif @vertices.include?(src + subdir + incl.gsub(/\/([^\/]+)$/, "/_#{$1}"))
+            match = src + subdir + "_" + incl
           else
             match = @vertices.select { |v| v =~ /#{incl}$/ }.first
             if match.nil?
-              match = @vertices.select { |v| v =~ /_#{incl}$/ }.first
+              match = @vertices.select { |v| v =~ /#{incl.gsub(/([^\/]+\/)+/, "")}$/ }.first
             end
           end
           if match.nil?
@@ -142,8 +157,8 @@ class KComp
       @texts[vertex] = rf
     end
 
-  def self.compile!(src, dest)
-    kc = KComp.new src, dest
+  def self.compile!(src, dest, opts={})
+    kc = KComp.new src, dest, opts
     kc.compile!
   end
 end

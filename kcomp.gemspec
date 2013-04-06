@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "kcomp"
-  s.version = "0.1.1"
+  s.version = "0.1.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jeremy Holland"]
@@ -43,17 +43,13 @@ Gem::Specification.new do |s|
     "spec/support/test-src/_partial1.kit",
     "spec/support/test-src/_partial2.kit",
     "spec/support/test-src/_partial3.kit",
-    "spec/support/test-src/inc1.kit",
     "spec/support/test-src/inc10.kit",
     "spec/support/test-src/inc11.kit",
     "spec/support/test-src/inc12.kit",
-    "spec/support/test-src/inc2.kit",
-    "spec/support/test-src/inc4.kit",
     "spec/support/test-src/inc5.kit",
     "spec/support/test-src/inc7.kit",
     "spec/support/test-src/inc8.kit",
     "spec/support/test-src/inc9.kit",
-    "spec/support/test-src/somedir/inc3.kit",
     "spec/support/test-src/somedir/inc6.kit",
     "spec/support/test-src/test-inclusion.kit"
   ]
