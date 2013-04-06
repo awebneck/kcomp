@@ -17,8 +17,8 @@ Jeweler::Tasks.new do |gem|
   gem.name = "kcomp"
   gem.homepage = "http://github.com/awebneck/kcomp"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{Codekit .kit file command-line compiler}
+  gem.description = %Q{Codekit .kit file command-line compiler}
   gem.email = "jeremy@jeremypholland.com"
   gem.authors = ["Jeremy Holland"]
   # dependencies defined in Gemfile

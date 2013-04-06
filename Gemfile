@@ -5,8 +5,10 @@ source "http://rubygems.org"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
-gem "rgl"
+gem "rgl", "~>0.4.0"
+
 group :development do
+  gem "pry", "~> 0.9.12"
   gem "rspec", "~> 2.8.0"
   gem "rdoc", "~> 3.12"
   gem "bundler", "~> 1.3.0"
