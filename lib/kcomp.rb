@@ -118,6 +118,9 @@ class KComp
         repl = []
         import.last.split(/, */).each do |incl|
           match = nil
+          if incl !~ /\.\w+$/
+            incl = "#{incl}.kit"
+          end
           if @vertices.include?(src + incl)
             match = src + incl
           elsif @vertices.include?(src + "_" + incl)
